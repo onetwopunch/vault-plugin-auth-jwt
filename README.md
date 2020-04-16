@@ -62,7 +62,7 @@ Go to the `Credentials` tab
 
 ## GSuite Groups
 
-1. Ensure that the [`admin.googleapis.com`](https://pantheon.corp.google.com/apis/library/admin.googleapis.com) API is enabled in the project where the service account lives.
+1. Ensure that the [`admin.googleapis.com`](https://console.cloud.google.com/apis/library/admin.googleapis.com) API is enabled in the project where the service account lives.
 2. Create a separate service account that does not have any GCP permissions and check the box for Domain Wide Delegation
 3. In the [GSuite Admin Console - Domain Wide Delegation](https://admin.google.com/ac/owl/domainwidedelegation) add a new API client where the client id is the service account email and the scopes are `https://www.googleapis.com/auth/admin.directory.group.readonly,https://www.googleapis.com/auth/admin.directory.user.readonly`
 
