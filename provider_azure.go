@@ -13,21 +13,24 @@ import (
 // AzureProvider is used for Azure-specific configuration
 type AzureProvider struct{}
 
+// Initialize anything in the AzureProvider struct - satisfying the CustomProvider interface
 func (a *AzureProvider) Initialize(jc *jwtConfig) error {
 	return nil
 }
 
+// SensitiveKeys - satisfying the CustomProvider interface
 func (a *AzureProvider) SensitiveKeys() []string {
 	return []string{}
 }
 
+// FetchGroups - custom groups fetching for azure
 func (a *AzureProvider) FetchGroups(b *jwtAuthBackend, allClaims map[string]interface{}, role *jwtRole) (interface{}, error) {
 	groupsClaimRaw := getClaim(b.Logger(), allClaims, role.GroupsClaim)
 
 	if groupsClaimRaw == nil {
-		azureClaimSourcesURL := getClaimSources(b.Logger(), allClaims, b.cachedConfig)
-		if azureClaimSourcesURL == "" {
-			return nil, fmt.Errorf("%q claim not found in token: %v", role.GroupsClaim, err)
+		azureClaimSourcesURL, err := getClaimSources(b.Logger(), allClaims, b.cachedConfig)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get claim sources: %s", err)
 		}
 
 		azureGroups, err := getAzureGroups(b.Logger(), azureClaimSourcesURL, b.cachedConfig)
@@ -41,15 +44,15 @@ func (a *AzureProvider) FetchGroups(b *jwtAuthBackend, allClaims map[string]inte
 
 // This is just a fix for Azure. In Azure, if you are indirectly member of more
 // than 200 groups, they will sent you a _claim_sources instead of the groups
-func getClaimSources(logger log.Logger, allClaims map[string]interface{}, c *jwtConfig) string {
+func getClaimSources(logger log.Logger, allClaims map[string]interface{}, c *jwtConfig) (string, error) {
 	claim := "/_claim_sources/src1/endpoint"
 	val, err := pointerstructure.Get(allClaims, claim)
 	if err != nil {
-		logger.Warn(fmt.Sprintf("unable to locate %s in claims: %s", claim, err.Error()))
+		return "", fmt.Errorf("unable to locate %s in claims: %s", claim, err.Error())
 	}
 
 	logger.Info(fmt.Sprintf("val: %v", val))
-	return fmt.Sprintf("%v", val)
+	return fmt.Sprintf("%v", val), nil
 }
 
 // Fetch user groups from the Azure AD Graph API
