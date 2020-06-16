@@ -11,8 +11,7 @@ import (
 // ProviderMap returns a map of provider names to custom types
 func ProviderMap() map[string]CustomProvider {
 	return map[string]CustomProvider{
-		// TODO: remove "empty" provider when actual providers are added
-		"empty": &EmptyProvider{},
+		"azure": &AzureProvider{},
 	}
 }
 
