@@ -10,6 +10,7 @@ import (
 
 // ProviderMap is used to map a provider name to its provider type
 var ProviderMap = map[string]CustomProvider{
+	// TODO: remove "empty" provider when actual providers are added
 	"empty": &EmptyProvider{},
 }
 
@@ -31,7 +32,7 @@ func NewProviderConfig(jc *jwtConfig, providerMap map[string]CustomProvider) (Cu
 		return nil, nil
 	}
 	if provider, ok = jc.ProviderConfig["provider"].(string); !ok {
-		return nil, fmt.Errorf("provider field not found in provider_config")
+		return nil, fmt.Errorf("'provider' field not found in provider_config")
 	}
 	newCustomProvider, ok = providerMap[provider]
 	if !ok {
