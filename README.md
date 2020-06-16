@@ -35,6 +35,40 @@ Successfully enabled 'jwt' at 'jwt'!
 
 To see all the supported paths, see the [JWT auth backend docs](https://www.vaultproject.io/docs/auth/jwt.html).
 
+## Setting up Client App
+
+For this to work, you'll need a callback domain for Vault that you can use in the OAuth client app. Also these instructions are taken predominantly from [this Github page](https://github.com/stenio123/vault-oidc-demo) and modified.
+
+### Create a new OAuth client consent screen
+
+Go to https://console.developers.google.com/apis/credentials and `OAuth Consent Screen tab.
+
+* Application type should be `Internal`
+* Enter Name, upload picture to show on consent screen (optional)
+* Set scopes to `email,profile,openid`
+* On "Authorized Domains", enter the domain of your vault server. Example `myvault.com`
+* Click `Save`
+
+### Create Credentials
+
+Go to the `Credentials` tab
+
+* Click "Create credentials > OAuth ClientID"
+* Select "Web application", give it a name
+* On "Authorized redirect URLs", enter `https://YOUR_VAULT_DOMAIN:8200/ui/vault/auth/oidc/oidc/callback`
+* Click `Save`
+
+**NOTE: Make sure to save the client id and secret to configure Vault**
+
+## GSuite Groups
+
+1. Ensure that the [`admin.googleapis.com`](https://pantheon.corp.google.com/apis/library/admin.googleapis.com) API is enabled in the project where the service account lives.
+2. Create a separate service account that does not have any GCP permissions and check the box for Domain Wide Delegation
+3. In the [GSuite Admin Console - Domain Wide Delegation](https://admin.google.com/ac/owl/domainwidedelegation) add a new API client where the client id is the service account email and the scopes are `https://www.googleapis.com/auth/admin.directory.group.readonly,https://www.googleapis.com/auth/admin.directory.user.readonly`
+
+The [`terraform.tf`](./scripts/terraform.tf) file shows how to setup a group claim that binds an admin user to a particular group. You'll need to pass in the client id and secret you created in the previous section.
+
+
 ## Developing
 
 If you wish to work on this plugin, you'll first need

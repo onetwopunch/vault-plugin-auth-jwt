@@ -18,6 +18,8 @@ echo "==> Starting dev"
 echo "--> Scratch dir"
 echo "    Creating"
 SCRATCH="$DIR/tmp"
+TFDIR=$DIR/scripts
+
 mkdir -p "$SCRATCH/plugins"
 
 echo "--> Vault server"
@@ -45,6 +47,8 @@ function cleanup {
   echo "==> Cleaning up"
   kill -INT "$VAULT_PID"
   rm -rf "$SCRATCH"
+  rm $TFDIR/terraform.tfstate*
+  rm -rf $TFDIR/.terraform
 }
 trap cleanup EXIT
 
@@ -55,19 +59,11 @@ echo "--> Building"
 go build -o "$SCRATCH/plugins/$PLUGIN_NAME" "./cmd/$PLUGIN_NAME" 
 SHASUM=$(shasum -a 256 "$SCRATCH/plugins/$PLUGIN_NAME" | cut -d " " -f1)
 
-echo "    Registering plugin"
-vault write sys/plugins/catalog/$PLUGIN_CATALOG_NAME \
-  sha_256="$SHASUM" \
-  command="$PLUGIN_NAME"
-
-echo "    Mounting plugin"
-vault auth enable -path=$MNT_PATH -plugin-name=$PLUGIN_CATALOG_NAME -listing-visibility=unauth plugin
-
 if [ -e scripts/custom.sh ]
 then
   . scripts/custom.sh
 fi
 
-echo "==> Ready!"
+echo '==> Ready! Now run `cd scripts; terraform init && terraform apply`'
 wait $!
 

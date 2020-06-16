@@ -83,3 +83,6 @@ scripts/custom.sh
 
 # binary
 cmd/vault-plugin-auth-jwt/vault-plugin-auth-jwt
+scripts/terraform.tfvars
+scripts/.terraform*
+scripts/*.tfstate*
