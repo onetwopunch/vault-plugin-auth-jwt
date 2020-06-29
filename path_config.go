@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -16,10 +17,9 @@ import (
 	"github.com/hashicorp/vault/sdk/helper/certutil"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/onetwopunch/google-groups/fetcher"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"golang.org/x/oauth2/jwt"
-	admin "google.golang.org/api/admin/directory/v1"
 )
 
 const (
@@ -86,7 +86,7 @@ func pathConfig(b *jwtAuthBackend) *framework.Path {
 			},
 			"gsuite_service_account": {
 				Type:        framework.TypeString,
-				Description: "Service account JSON file with the following scopes: https://www.googleapis.com/auth/admin.directory.group.readonly, https://www.googleapis.com/auth/admin.directory.user.readonly",
+				Description: "Service account JSON filepath with the following scopes: https://www.googleapis.com/auth/admin.directory.group.readonly, https://www.googleapis.com/auth/admin.directory.user.readonly",
 				DisplayAttrs: &framework.DisplayAttributes{
 					Sensitive: true,
 				},
@@ -145,12 +145,11 @@ func (b *jwtAuthBackend) config(ctx context.Context, s logical.Storage) (*jwtCon
 	}
 
 	if len(config.GSuiteServiceAccount) != 0 {
-		googleConfig, err := google.JWTConfigFromJSON([]byte(config.GSuiteServiceAccount), admin.AdminDirectoryGroupReadonlyScope, admin.AdminDirectoryUserReadonlyScope)
+		f, err := fetcher.NewDefaultGroupFetcher(config.GSuiteServiceAccount, config.GSuiteAdminImpersonate)
 		if err != nil {
 			return nil, errwrap.Wrapf("error parsing gsuite service account file: {{err}}", err)
 		}
-		googleConfig.Subject = config.GSuiteAdminImpersonate
-		config.ParsedGSuiteServiceAccount = googleConfig
+		config.GroupFetcher = f
 	}
 
 	b.cachedConfig = config
@@ -263,7 +262,11 @@ func (b *jwtAuthBackend) pathConfigWrite(ctx context.Context, req *logical.Reque
 		}
 
 	case len(config.GSuiteServiceAccount) != 0:
-		if _, err := google.JWTConfigFromJSON([]byte(config.GSuiteServiceAccount)); err != nil {
+		keyJson, err := ioutil.ReadFile(config.GSuiteServiceAccount)
+		if err != nil {
+			return logical.ErrorResponse(errwrap.Wrapf("error reading gsuite service account file: {{err}}", err).Error()), nil
+		}
+		if _, err := google.JWTConfigFromJSON(keyJson); err != nil {
 			return logical.ErrorResponse(errwrap.Wrapf("error parsing gsuite service account file: {{err}}", err).Error()), nil
 		}
 		if len(config.GSuiteAdminImpersonate) == 0 {
@@ -369,9 +372,9 @@ type jwtConfig struct {
 	BoundIssuer          string   `json:"bound_issuer"`
 	DefaultRole          string   `json:"default_role"`
 
-	GSuiteServiceAccount       string      `json:"service_account"`
-	GSuiteAdminImpersonate     string      `json:"admin_impersonate"`
-	ParsedGSuiteServiceAccount *jwt.Config `json:"-"`
+	GSuiteServiceAccount   string                `json:"service_account"`
+	GSuiteAdminImpersonate string                `json:"admin_impersonate"`
+	GroupFetcher           *fetcher.GroupFetcher `json:"-"`
 
 	ParsedJWTPubKeys []interface{} `json:"-"`
 }

@@ -155,6 +155,11 @@ func normalizeList(raw interface{}) ([]interface{}, bool) {
 	switch v := raw.(type) {
 	case []interface{}:
 		normalized = v
+	case []string:
+		normalized = make([]interface{}, len(v))
+		for i, val := range v {
+			normalized[i] = val
+		}
 	case string, bool:
 		normalized = []interface{}{v}
 	default:

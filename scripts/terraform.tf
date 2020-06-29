@@ -40,12 +40,19 @@ EOF
     sha256sum = filesha256(var.plugin_path)
   }
 }
-resource "null_resource" "gsuite_config" {
-  provisioner "local-exec" {
-    command=<<EOF
-vault write auth/oidc/config oidc_discovery_url="https://accounts.google.com" oidc_client_id="${var.oidc_client_id}" oidc_client_secret="${var.oidc_client_secret}" bound_issuer="https://accounts.google.com" gsuite_service_account=@"${var.gsuite_service_account}"  gsuite_admin_impersonate="${var.gsuite_admin_email}"
+
+resource "vault_generic_secret" "gsuite_config" {
+  path = "auth/oidc/config"
+  data_json = <<EOF
+{
+   "oidc_discovery_url": "https://accounts.google.com",
+   "oidc_client_id": "${var.oidc_client_id}",
+   "oidc_client_secret": "${var.oidc_client_secret}",
+   "bound_issuer": "https://accounts.google.com",
+   "gsuite_service_account": "${var.gsuite_service_account}",
+   "gsuite_admin_impersonate": "${var.gsuite_admin_email}"
+}
 EOF
-  }
   depends_on = [null_resource.gsuite_plugin]
 }
 
@@ -62,5 +69,5 @@ resource "vault_jwt_auth_backend_role" "gsuite" {
   bound_claims = {
     groups = join(", ", var.allowed_groups)
   }
-  depends_on = [null_resource.gsuite_config]
+  depends_on = [vault_generic_secret.gsuite_config]
 }
